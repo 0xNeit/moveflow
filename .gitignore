@@ -1,0 +1,6 @@
+/build/
+.idea
+/.aptos/
+aptos-core
+
+**/build/

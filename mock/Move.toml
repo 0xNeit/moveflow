@@ -1,0 +1,18 @@
+[package]
+name = "mycoin"
+version = "0.2.0"
+license = "Apache-2.0"
+upgrade_policy = "compatible"
+
+#[dependencies.AptosFramework]
+#git = 'https://github.com/aptos-labs/aptos-core.git'
+#rev = 'main'
+#subdir = 'aptos-move/framework/aptos-framework'
+[dependencies]
+AptosFramework = { git='https://github.com/aptos-labs/aptos-core.git', rev = 'main', subdir = 'aptos-move/framework/aptos-framework' }
+
+[addresses]
+mycoin = "_"
+
+[dev-addresses]
+mycoin = "0x123"
