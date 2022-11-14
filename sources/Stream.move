@@ -596,17 +596,14 @@ module Stream::streampay {
         );
         let stream = table::borrow(&_config.store, stream_id);
 
-        let current_time = timestamp::now_seconds();
-        if (current_time <= stream.start_time) {
-            return 0u64
-        };
+        let (delta, _) = delta_of(stream.start_time, stream.stop_time); // total
 
-        let sender_balance = (current_time - stream.start_time) * stream.rate_per_second;
+        let sender_balance = (stream.stop_time - stream.start_time - delta) * stream.rate_per_second;
 
         sender_balance
     }
 
-    // recipient balance = rate_per_second * (duration - delta) for-claim balance
+    // recipient balance = rate_per_second * (duration - delta)
     public fun recipient_balance<CoinType>(coin_id: u64, stream_id: u64): u64 
         acquires GlobalConfig
     {
