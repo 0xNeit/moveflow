@@ -431,17 +431,6 @@ module Stream::streampay {
         coin_id: u64,
         stream_id: u64,
     ) acquires GlobalConfig, Escrow {
-        let current_time = timestamp::now_seconds();
-        withdraw_internal<CoinType>(operator, coin_id, stream_id, current_time);
-    }
-
-    /// id: stream id
-    fun withdraw_internal<CoinType>(
-        operator: &signer,
-        coin_id: u64,
-        stream_id: u64,
-        current_time: u64,
-    ) acquires GlobalConfig, Escrow {
         // 1. check args
         let operator_address = signer::address_of(operator);
         check_operator(operator_address, false);
@@ -469,7 +458,7 @@ module Stream::streampay {
         let escrow_coin = borrow_global_mut<Escrow<CoinType>>(_config.escrow_address);
         
 
-        let (delta, last_withdraw_time) = delta_of(stream.last_withdraw_time, stream.stop_time, current_time);
+        let (delta, last_withdraw_time) = delta_of(stream.last_withdraw_time, stream.stop_time);
         let withdraw_amount = stream.rate_per_second * delta;
 
         assert!(
@@ -636,8 +625,7 @@ module Stream::streampay {
         );
         let stream = table::borrow(&_config.store, stream_id);
 
-        let current_time = timestamp::now_seconds();
-        let (delta, _) = delta_of(stream.last_withdraw_time, stream.stop_time, current_time); // total
+        let (delta, _) = delta_of(stream.last_withdraw_time, stream.stop_time); // total
         
         let recipient_balance = delta * stream.rate_per_second;
 
@@ -698,7 +686,8 @@ module Stream::streampay {
         *output_stream
     }
 
-    public fun delta_of(last_withdraw_time: u64, stop_time: u64, current_time: u64) : (u64, u64) {
+    public fun delta_of(last_withdraw_time: u64, stop_time: u64) : (u64, u64) {
+        let current_time = timestamp::now_seconds();
         let delta = stop_time - last_withdraw_time;
 
         if(current_time < last_withdraw_time){
@@ -709,7 +698,7 @@ module Stream::streampay {
             return (current_time - last_withdraw_time, current_time)
         };
 
-        (delta, stop_time)
+        (delta, current_time)
     }
 
     // public views for global config start 
@@ -771,18 +760,10 @@ module Stream::streampay {
     #[test_only]
     struct FakeMoney {}
 
-    #[test_only]
-    public entry fun withdraw_test<CoinType>(
-        operator: &signer,
-        coin_id: u64,
-        stream_id: u64,
-        current_time: u64,
-    ) acquires GlobalConfig, Escrow {
-        withdraw_internal<CoinType>(operator, coin_id, stream_id, current_time);
-    }
-
     #[test(account = @0x1, stream= @Stream, admin = @Admin)]
     fun test(account: signer, stream: signer, admin: signer) acquires GlobalConfig, Escrow {
+
+        timestamp::set_time_has_started_for_testing(&account);
 
         let stream_addr = signer::address_of(&stream);
         account::create_account_for_test(stream_addr);
@@ -841,7 +822,8 @@ module Stream::streampay {
         let beforeWithdraw = coin::balance<FakeMoney>(recipient);
         debug::print(&coin::balance<FakeMoney>(recipient));
 
-        withdraw_test<FakeMoney>(&stream, 0, 1, 10000);
+        timestamp::update_global_time_for_test_secs(10000);
+        withdraw<FakeMoney>(&stream, 0, 1);
         debug::print(&coin::balance<FakeMoney>(recipient));
         let global = borrow_global_mut<GlobalConfig>(@Stream);
         let _config = vector::borrow(&global.coin_configs, 0);
@@ -849,7 +831,8 @@ module Stream::streampay {
         assert!(_stream.last_withdraw_time == 10000, 0);
         assert!(coin::balance<FakeMoney>(recipient) == beforeWithdraw, 0);
 
-        withdraw_test<FakeMoney>(&stream, 0, 1, 10001);
+        timestamp::fast_forward_seconds(1);
+        withdraw<FakeMoney>(&stream, 0, 1);
         debug::print(&coin::balance<FakeMoney>(recipient));
         let global = borrow_global_mut<GlobalConfig>(@Stream);
         let _config = vector::borrow(&global.coin_configs, 0);
@@ -857,7 +840,8 @@ module Stream::streampay {
         assert!(_stream.last_withdraw_time == 10001, 0);
         assert!(coin::balance<FakeMoney>(recipient) == beforeWithdraw + 60000/5 * 1, 0);
 
-        withdraw_test<FakeMoney>(&stream, 0, 1, 10002);
+        timestamp::fast_forward_seconds(1);
+        withdraw<FakeMoney>(&stream, 0, 1);
         debug::print(&coin::balance<FakeMoney>(recipient));
         let global = borrow_global_mut<GlobalConfig>(@Stream);
         let _config = vector::borrow(&global.coin_configs, 0);
@@ -865,7 +849,8 @@ module Stream::streampay {
         assert!(_stream.last_withdraw_time == 10002, 0);
         assert!(coin::balance<FakeMoney>(recipient) == beforeWithdraw + 60000/5 * 2, 0);
 
-        withdraw_test<FakeMoney>(&stream, 0, 1, 10003);
+        timestamp::fast_forward_seconds(1);
+        withdraw<FakeMoney>(&stream, 0, 1);
         debug::print(&coin::balance<FakeMoney>(recipient));
         let global = borrow_global_mut<GlobalConfig>(@Stream);
         let _config = vector::borrow(&global.coin_configs, 0);
@@ -873,7 +858,8 @@ module Stream::streampay {
         assert!(_stream.last_withdraw_time == 10003, 0);
         assert!(coin::balance<FakeMoney>(recipient) == beforeWithdraw + 60000/5 * 3, 0);
 
-        withdraw_test<FakeMoney>(&stream, 0, 1, 10004);
+        timestamp::fast_forward_seconds(1);
+        withdraw<FakeMoney>(&stream, 0, 1);
         debug::print(&coin::balance<FakeMoney>(recipient));
         let global = borrow_global_mut<GlobalConfig>(@Stream);
         let _config = vector::borrow(&global.coin_configs, 0);
@@ -881,7 +867,8 @@ module Stream::streampay {
         assert!(_stream.last_withdraw_time == 10004, 0);
         assert!(coin::balance<FakeMoney>(recipient) == beforeWithdraw + 60000/5 * 4, 0);
 
-        withdraw_test<FakeMoney>(&stream, 0, 1, 10005);
+        timestamp::fast_forward_seconds(1);
+        withdraw<FakeMoney>(&stream, 0, 1);
         debug::print(&coin::balance<FakeMoney>(recipient));
         let global = borrow_global_mut<GlobalConfig>(@Stream);
         let _config = vector::borrow(&global.coin_configs, 0);
@@ -889,12 +876,13 @@ module Stream::streampay {
         assert!(_stream.last_withdraw_time == 10005, 0);
         assert!(coin::balance<FakeMoney>(recipient) == beforeWithdraw + 60000/5 * 5, 0);
 
-        withdraw_test<FakeMoney>(&stream, 0, 1, 10006);
+        timestamp::fast_forward_seconds(1);
+        withdraw<FakeMoney>(&stream, 0, 1);
         debug::print(&coin::balance<FakeMoney>(recipient));
         let global = borrow_global_mut<GlobalConfig>(@Stream);
         let _config = vector::borrow(&global.coin_configs, 0);
         let _stream = table::borrow(&_config.store, 1);
-        assert!(_stream.last_withdraw_time == 10005, 0);
+        assert!(_stream.last_withdraw_time == 10006, 0);
         assert!(coin::balance<FakeMoney>(recipient) == beforeWithdraw + 60000/5 * 5, 0);
     }
 
