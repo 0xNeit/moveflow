@@ -536,7 +536,7 @@ module Stream::streampay {
         (fee, withdraw_amount - fee)
     }
 
-    public fun escrow_balance<CoinType>(coin_id: u64): u64 
+    public entry fun escrow_balance<CoinType>(coin_id: u64): u64 
         acquires GlobalConfig 
     {
         assert!(
@@ -555,7 +555,7 @@ module Stream::streampay {
     }
 
     // remaining_balance =  deposit_amount - withdrawed amount
-    public fun remaining_balance<CoinType>(coin_id: u64, stream_id: u64): u64 
+    public entry fun remaining_balance<CoinType>(coin_id: u64, stream_id: u64): u64 
         acquires GlobalConfig 
     {
         assert!(
@@ -578,7 +578,7 @@ module Stream::streampay {
     }
 
     // sender balance = rate_per_second * (duration - delta), unlock balance
-    public fun sender_balance<CoinType>(coin_id: u64, stream_id: u64): u64 
+    public entry fun sender_balance<CoinType>(coin_id: u64, stream_id: u64): u64 
         acquires GlobalConfig 
     {
         assert!(
@@ -604,7 +604,7 @@ module Stream::streampay {
     }
 
     // recipient balance = rate_per_second * (duration - delta)
-    public fun recipient_balance<CoinType>(coin_id: u64, stream_id: u64): u64 
+    public entry fun recipient_balance<CoinType>(coin_id: u64, stream_id: u64): u64 
         acquires GlobalConfig
     {
         assert!(
@@ -630,7 +630,7 @@ module Stream::streampay {
 
     }
 
-    public fun stream_info<CoinType>(coin_id: u64, stream_id: u64): StreamInfo
+    public entry fun stream_info<CoinType>(coin_id: u64, stream_id: u64): StreamInfo
         acquires GlobalConfig
     {
         assert!(
@@ -651,7 +651,7 @@ module Stream::streampay {
         *stream
     }
 
-    public fun input_stream(account: address): vector<StreamIndex>
+    public entry fun input_stream(account: address): vector<StreamIndex>
         acquires GlobalConfig
     {
         assert!(
@@ -667,7 +667,7 @@ module Stream::streampay {
         *input_stream
     }
 
-    public fun output_stream(account: address): vector<StreamIndex>
+    public entry fun output_stream(account: address): vector<StreamIndex>
     acquires GlobalConfig
     {
         assert!(
@@ -683,7 +683,7 @@ module Stream::streampay {
         *output_stream
     }
 
-    public fun delta_of(last_withdraw_time: u64, stop_time: u64) : (u64, u64) {
+    public entry fun delta_of(last_withdraw_time: u64, stop_time: u64) : (u64, u64) {
         let current_time = timestamp::now_seconds();
         let delta = stop_time - last_withdraw_time;
 
@@ -699,21 +699,21 @@ module Stream::streampay {
     }
 
     // public views for global config start 
-    public fun fee_recipient(): address acquires GlobalConfig {
+    public entry fun fee_recipient(): address acquires GlobalConfig {
         assert!(
             exists<GlobalConfig>(@Stream), error::already_exists(STREAM_NOT_PUBLISHED),
         );
         borrow_global<GlobalConfig>(@Stream).fee_recipient
     }
 
-    public fun admin(): address acquires GlobalConfig {
+    public entry fun admin(): address acquires GlobalConfig {
         assert!(
             exists<GlobalConfig>(@Stream), error::already_exists(STREAM_NOT_PUBLISHED),
         );
         borrow_global<GlobalConfig>(@Stream).admin
     }
 
-    public fun fee_point(coin_id: u64): u8 acquires GlobalConfig {
+    public entry fun fee_point(coin_id: u64): u8 acquires GlobalConfig {
         assert!(
             exists<GlobalConfig>(@Stream), error::already_exists(STREAM_NOT_PUBLISHED),
         );
@@ -725,7 +725,7 @@ module Stream::streampay {
         vector::borrow(&global.coin_configs, coin_id).fee_point
     }
 
-    public fun next_id(coin_id: u64): u64 acquires GlobalConfig {
+    public entry fun next_id(coin_id: u64): u64 acquires GlobalConfig {
         assert!(
             exists<GlobalConfig>(@Stream), error::already_exists(STREAM_NOT_PUBLISHED),
         );
@@ -737,7 +737,7 @@ module Stream::streampay {
         vector::borrow(&global.coin_configs, coin_id).next_id
     }
 
-    public fun coin_type(coin_id: u64): String acquires GlobalConfig {
+    public entry fun coin_type(coin_id: u64): String acquires GlobalConfig {
         assert!(
             exists<GlobalConfig>(@Stream), error::already_exists(STREAM_NOT_PUBLISHED),
         );
