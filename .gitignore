@@ -4,3 +4,6 @@
 aptos-core
 
 **/build/
+
+typescript/node_modules
+testkey
