@@ -1,6 +1,7 @@
 
 // Copyright 2022  Authors. Licensed under Apache-2.0 License.
 module Stream::streampay {
+    use std::bcs;
     use std::signer;
     use std::error;
     use std::vector;
@@ -38,6 +39,7 @@ module Stream::streampay {
     const EVENT_TYPE_CLOSE: u8 = 2;
     const EVENT_TYPE_EXTEND: u8 = 3;
 
+    const SALT: vector<u8> = b"Stream::streampay";
 
     /// Event emitted when created/withdraw/closed a streampay
     struct StreamEvent has drop, store {
@@ -152,8 +154,13 @@ module Stream::streampay {
 
         let coin_type = type_info::type_name<CoinType>();
 
+        let seed = bcs::to_bytes(&signer::address_of(admin));
+        vector::append(&mut seed, bcs::to_bytes(&@Stream));
+        vector::append(&mut seed, SALT);
+        vector::append(&mut seed, *string::bytes(&coin_type));
+
         // escrow address 
-        let (resource, _signer_cap) = account::create_resource_account(admin, *string::bytes(&coin_type));
+        let (resource, _signer_cap) = account::create_resource_account(admin, seed);
 
         assert!(
             !exists<Escrow<CoinType>>(signer::address_of(&resource)), STREAM_HAS_REGISTERED
