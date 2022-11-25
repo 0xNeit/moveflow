@@ -15,7 +15,7 @@ module Stream::streampay {
     use aptos_framework::timestamp;
 
     const MIN_DEPOSIT_BALANCE: u64 = 10000; // 0.0001 APT(decimals=8)
-    const MIN_RATE_PER_SECOND: u64 = 1; // 0.00000001 APT(decimals=8)
+    const MIN_RATE_PER_SECOND: u64 = 1000; // 0.00000001 APT(decimals=8)
     const INIT_FEE_POINT: u8 = 250; // 2.5%
 
     const STREAM_HAS_PUBLISHED: u64 = 1;
@@ -148,7 +148,7 @@ module Stream::streampay {
         admin: &signer
     ) acquires GlobalConfig {
         let admin_addr = signer::address_of(admin);
-        check_operator(admin_addr, true);
+        check_operator(admin_addr, false);
 
         let coin_type = type_info::type_name<CoinType>();
 
@@ -222,7 +222,7 @@ module Stream::streampay {
         );
         
         let duration = stop_time - start_time;
-        let rate_per_second: u64 = deposit_amount / duration;
+        let rate_per_second: u64 = deposit_amount * 1000 / duration;
 
         assert!(
             rate_per_second >= MIN_RATE_PER_SECOND, error::invalid_argument(STREAM_RATE_TOO_LITTLE)
@@ -265,12 +265,12 @@ module Stream::streampay {
 
         // 6. add input stream to sender
 
-        add_stream_index(&mut global.input_stream, sender_address, StreamIndex{
+        add_stream_index(&mut global.output_stream, sender_address, StreamIndex{
             coin_id: _config.coin_id,
             stream_id: _stream_id,
         });
 
-        add_stream_index(&mut global.output_stream, recipient, StreamIndex{
+        add_stream_index(&mut global.input_stream, recipient, StreamIndex{
             coin_id: _config.coin_id,
             stream_id: _stream_id,
         });
@@ -288,16 +288,16 @@ module Stream::streampay {
         );
     }
 
-    fun add_stream_index(stream_table: &mut Table<address, vector<StreamIndex>>, sender_address: address, stream_index: StreamIndex ) {
-        if (!table::contains(stream_table, sender_address)){
+    fun add_stream_index(stream_table: &mut Table<address, vector<StreamIndex>>, key_address: address, stream_index: StreamIndex ) {
+        if (!table::contains(stream_table, key_address)){
             table::add(
                 stream_table,
-                sender_address,
+                key_address,
                 vector::empty<StreamIndex>(),
             )
         };
 
-        let sender_stream = table::borrow_mut(stream_table, sender_address);
+        let sender_stream = table::borrow_mut(stream_table, key_address);
 
         vector::push_back(sender_stream, stream_index);
     }
@@ -336,7 +336,7 @@ module Stream::streampay {
         assert!(stream.sender == sender_address, error::invalid_argument(STREAM_PERMISSION_DENIED));
 
         assert!(new_stop_time > stream.stop_time, ERR_NEW_STOP_TIME);
-        let deposit_amount = (new_stop_time - stream.stop_time) * stream.rate_per_second;
+        let deposit_amount = (new_stop_time - stream.stop_time) * stream.rate_per_second / 1000;
         assert!(
             coin::balance<CoinType>(sender_address) >= deposit_amount, error::invalid_argument(STREAM_INSUFFICIENT_BALANCES)
         );
@@ -461,7 +461,7 @@ module Stream::streampay {
         
 
         let (delta, last_withdraw_time) = delta_of(stream.last_withdraw_time, stream.stop_time);
-        let withdraw_amount = stream.rate_per_second * delta;
+        let withdraw_amount = stream.rate_per_second * delta / 1000;
 
         assert!(
             withdraw_amount <= stream.remaining_balance && withdraw_amount <= coin::value(&escrow_coin.coin),
@@ -661,7 +661,7 @@ module Stream::streampay {
         assert!(_stream.stop_time == 10005, 0);
         assert!(_stream.deposit_amount == 60000, 0);
         assert!(_stream.remaining_balance == coin::value(&escrow_coin.coin), 0);
-        assert!(_stream.rate_per_second == 60000/5, 0);
+        assert!(_stream.rate_per_second == 60000 * 1000/5, 0);
         assert!(_stream.last_withdraw_time == 10000, 0);
 
         //wthidraw
