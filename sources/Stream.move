@@ -557,7 +557,7 @@ module Stream::streampay {
             return (current_time - last_withdraw_time, current_time)
         };
 
-        (delta, current_time)
+        (delta, stop_time)
     }
 
     // public views for global config start
@@ -735,7 +735,7 @@ module Stream::streampay {
         let global = borrow_global_mut<GlobalConfig>(@Stream);
         let _config = vector::borrow(&global.coin_configs, 0);
         let _stream = table::borrow(&_config.store, 1);
-        assert!(_stream.last_withdraw_time == 10006, 0);
+        assert!(_stream.last_withdraw_time == _stream.stop_time, 0);
         assert!(coin::balance<FakeMoney>(recipient) == beforeWithdraw + 60000/5 * 5, 0);
     }
 
