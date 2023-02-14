@@ -44,7 +44,7 @@ const RECEIVER_ADDR = "0x0e1cad35db73ecab64d22230b2e9a59ba0cee1104bbf71fcd566f04
     type: "entry_function_payload",
     function: `${STREAMPAY_ADDR}::streampay::extend`,
     type_arguments: ["0x1::aptos_coin::AptosCoin"],
-    arguments: ["20000", "0", "0"],
+    arguments: ["20000", "0", "1"],
   };
   txnRequest = await client.generateTransaction(account1.address(), payload);
   signedTxn = await client.signTransaction(account1, txnRequest);
@@ -57,7 +57,7 @@ const RECEIVER_ADDR = "0x0e1cad35db73ecab64d22230b2e9a59ba0cee1104bbf71fcd566f04
     type: "entry_function_payload",
     function: `${STREAMPAY_ADDR}::streampay::withdraw`,
     type_arguments: ["0x1::aptos_coin::AptosCoin"],
-    arguments: ["0", "0"],
+    arguments: ["0", "1"],
   };
   txnRequest = await client.generateTransaction(account1.address(), payload);
   signedTxn = await client.signTransaction(account1, txnRequest);
@@ -70,7 +70,7 @@ const RECEIVER_ADDR = "0x0e1cad35db73ecab64d22230b2e9a59ba0cee1104bbf71fcd566f04
     type: "entry_function_payload",
     function: `${STREAMPAY_ADDR}::streampay::close`,
     type_arguments: ["0x1::aptos_coin::AptosCoin"],
-    arguments: ["0", "0"],
+    arguments: ["0", "1"],
   };
   txnRequest = await client.generateTransaction(account1.address(), payload);
   signedTxn = await client.signTransaction(account1, txnRequest);
