@@ -2,18 +2,22 @@
 // Copyright 2022  Authors. Licensed under Apache-2.0 License.
 module Stream::streampay {
     use std::bcs;
-    use std::signer;
     use std::error;
-    use std::vector;
+    use std::signer;
     use std::string::{Self, String};
-    
-    use aptos_std::event::{Self, EventHandle};
-    use aptos_std::type_info;
-    use aptos_std::table::{Self, Table};
+    use std::vector;
 
+    use aptos_std::event::{Self, EventHandle};
+    use aptos_std::table::{Self, Table};
+    use aptos_std::type_info;
     use aptos_framework::account;
     use aptos_framework::coin::{Self, Coin};
     use aptos_framework::timestamp;
+
+    #[test_only]
+    use aptos_std::debug;
+    #[test_only]
+    use aptos_framework::managed_coin;
 
     const MIN_DEPOSIT_BALANCE: u64 = 10000; // 0.0001 APT(decimals=8)
     const MIN_RATE_PER_SECOND: u64 = 1000; // 0.00000001 APT(decimals=8)
@@ -358,6 +362,7 @@ module Stream::streampay {
 
         stream.stop_time = new_stop_time;
         stream.remaining_balance = stream.remaining_balance + deposit_amount;
+        stream.deposit_amount = stream.deposit_amount + deposit_amount;
 
         // 6. emit open event
 
@@ -606,11 +611,6 @@ module Stream::streampay {
     }
 
     #[test_only]
-    use aptos_framework::managed_coin;
-    #[test_only]
-    use aptos_std::debug;
-
-    #[test_only]
     struct FakeMoney {}
 
     #[test(account = @0x1, stream= @Stream, admin = @Admin)]
@@ -620,10 +620,13 @@ module Stream::streampay {
 
         let stream_addr = signer::address_of(&stream);
         account::create_account_for_test(stream_addr);
+        debug::print(&stream_addr);
         let admin_addr = signer::address_of(&admin);
         account::create_account_for_test(admin_addr);
+        debug::print(&admin_addr);
         let account_addr = signer::address_of(&account);
         account::create_account_for_test(account_addr);
+        debug::print(&account_addr);
 
         let name = b"Fake money";
         let symbol = b"FMD";
