@@ -1,6 +1,7 @@
 
 // Copyright 2022  Authors. Licensed under Apache-2.0 License.
 module Stream::streampay {
+    use std::bcs;
     use std::signer;
     use std::error;
     use std::vector;
@@ -15,7 +16,7 @@ module Stream::streampay {
     use aptos_framework::timestamp;
 
     const MIN_DEPOSIT_BALANCE: u64 = 10000; // 0.0001 APT(decimals=8)
-    const MIN_RATE_PER_SECOND: u64 = 1; // 0.00000001 APT(decimals=8)
+    const MIN_RATE_PER_SECOND: u64 = 1000; // 0.00000001 APT(decimals=8)
     const INIT_FEE_POINT: u8 = 250; // 2.5%
 
     const STREAM_HAS_PUBLISHED: u64 = 1;
@@ -31,12 +32,14 @@ module Stream::streampay {
     const STREAM_IS_CLOSE: u64 = 11;
     const STREAM_RATE_TOO_LITTLE: u64 = 12;
     const COIN_CONF_NOT_FOUND: u64 = 13;
+    const ERR_NEW_STOP_TIME: u64 = 14;
 
     const EVENT_TYPE_CREATE: u8 = 0;
     const EVENT_TYPE_WITHDRAW: u8 = 1;
     const EVENT_TYPE_CLOSE: u8 = 2;
     const EVENT_TYPE_EXTEND: u8 = 3;
 
+    const SALT: vector<u8> = b"Stream::streampay";
 
     /// Event emitted when created/withdraw/closed a streampay
     struct StreamEvent has drop, store {
@@ -147,12 +150,17 @@ module Stream::streampay {
         admin: &signer
     ) acquires GlobalConfig {
         let admin_addr = signer::address_of(admin);
-        check_operator(admin_addr, true);
+        check_operator(admin_addr, false);
 
         let coin_type = type_info::type_name<CoinType>();
 
+        let seed = bcs::to_bytes(&signer::address_of(admin));
+        vector::append(&mut seed, bcs::to_bytes(&@Stream));
+        vector::append(&mut seed, SALT);
+        vector::append(&mut seed, *string::bytes(&coin_type));
+
         // escrow address 
-        let (resource, _signer_cap) = account::create_resource_account(admin, *string::bytes(&coin_type));
+        let (resource, _signer_cap) = account::create_resource_account(admin, seed);
 
         assert!(
             !exists<Escrow<CoinType>>(signer::address_of(&resource)), STREAM_HAS_REGISTERED
@@ -221,7 +229,7 @@ module Stream::streampay {
         );
         
         let duration = stop_time - start_time;
-        let rate_per_second: u64 = deposit_amount / duration;
+        let rate_per_second: u64 = deposit_amount * 1000 / duration;
 
         assert!(
             rate_per_second >= MIN_RATE_PER_SECOND, error::invalid_argument(STREAM_RATE_TOO_LITTLE)
@@ -264,12 +272,12 @@ module Stream::streampay {
 
         // 6. add input stream to sender
 
-        add_stream_index(&mut global.input_stream, sender_address, StreamIndex{
+        add_stream_index(&mut global.output_stream, sender_address, StreamIndex{
             coin_id: _config.coin_id,
             stream_id: _stream_id,
         });
 
-        add_stream_index(&mut global.output_stream, recipient, StreamIndex{
+        add_stream_index(&mut global.input_stream, recipient, StreamIndex{
             coin_id: _config.coin_id,
             stream_id: _stream_id,
         });
@@ -287,16 +295,16 @@ module Stream::streampay {
         );
     }
 
-    fun add_stream_index(stream_table: &mut Table<address, vector<StreamIndex>>, sender_address: address, stream_index: StreamIndex ) {
-        if (!table::contains(stream_table, sender_address)){
+    fun add_stream_index(stream_table: &mut Table<address, vector<StreamIndex>>, key_address: address, stream_index: StreamIndex ) {
+        if (!table::contains(stream_table, key_address)){
             table::add(
                 stream_table,
-                sender_address,
+                key_address,
                 vector::empty<StreamIndex>(),
             )
         };
 
-        let sender_stream = table::borrow_mut(stream_table, sender_address);
+        let sender_stream = table::borrow_mut(stream_table, key_address);
 
         vector::push_back(sender_stream, stream_index);
     }
@@ -334,7 +342,8 @@ module Stream::streampay {
         let stream = table::borrow_mut(&mut _config.store, stream_id);
         assert!(stream.sender == sender_address, error::invalid_argument(STREAM_PERMISSION_DENIED));
 
-        let deposit_amount = (new_stop_time - stream.stop_time) * stream.rate_per_second;
+        assert!(new_stop_time > stream.stop_time, ERR_NEW_STOP_TIME);
+        let deposit_amount = (new_stop_time - stream.stop_time) * stream.rate_per_second / 1000;
         assert!(
             coin::balance<CoinType>(sender_address) >= deposit_amount, error::invalid_argument(STREAM_INSUFFICIENT_BALANCES)
         );
@@ -459,7 +468,7 @@ module Stream::streampay {
         
 
         let (delta, last_withdraw_time) = delta_of(stream.last_withdraw_time, stream.stop_time);
-        let withdraw_amount = stream.rate_per_second * delta;
+        let withdraw_amount = stream.rate_per_second * delta / 1000;
 
         assert!(
             withdraw_amount <= stream.remaining_balance && withdraw_amount <= coin::value(&escrow_coin.coin),
@@ -536,153 +545,6 @@ module Stream::streampay {
         (fee, withdraw_amount - fee)
     }
 
-    public fun escrow_balance<CoinType>(coin_id: u64): u64 
-        acquires GlobalConfig 
-    {
-        assert!(
-            exists<GlobalConfig>(@Stream), error::already_exists(STREAM_NOT_PUBLISHED),
-        );
-        let global = borrow_global<GlobalConfig>(@Stream);
-
-        assert!(
-            vector::length(&global.coin_configs) > coin_id, error::not_found(COIN_CONF_NOT_FOUND),
-        );
-        let _config = vector::borrow(&global.coin_configs, coin_id);
-
-        let escrow_balance = coin::balance<CoinType>(_config.escrow_address);
-
-        return escrow_balance
-    }
-
-    // remaining_balance =  deposit_amount - withdrawed amount
-    public fun remaining_balance<CoinType>(coin_id: u64, stream_id: u64): u64 
-        acquires GlobalConfig 
-    {
-        assert!(
-            exists<GlobalConfig>(@Stream), error::already_exists(STREAM_NOT_PUBLISHED),
-        );
-        let global = borrow_global<GlobalConfig>(@Stream);
-
-        assert!(
-            vector::length(&global.coin_configs) > coin_id, error::not_found(COIN_CONF_NOT_FOUND),
-        );
-        let _config = vector::borrow(&global.coin_configs, coin_id);
-
-        assert!(
-            table::contains(&_config.store, stream_id), error::not_found(STREAM_NOT_FOUND),
-        );
-        let stream = table::borrow(&_config.store, stream_id);
-
-        let remaining_balance = stream.remaining_balance;       // total remaining amount
-        remaining_balance
-    }
-
-    // sender balance = rate_per_second * (duration - delta), unlock balance
-    public fun sender_balance<CoinType>(coin_id: u64, stream_id: u64): u64 
-        acquires GlobalConfig 
-    {
-        assert!(
-            exists<GlobalConfig>(@Stream), error::already_exists(STREAM_NOT_PUBLISHED),
-        );
-        let global = borrow_global<GlobalConfig>(@Stream);
-
-        assert!(
-            vector::length(&global.coin_configs) > coin_id, error::not_found(COIN_CONF_NOT_FOUND),
-        );
-        let _config = vector::borrow(&global.coin_configs, coin_id);
-
-        assert!(
-            table::contains(&_config.store, stream_id), error::not_found(STREAM_NOT_FOUND),
-        );
-        let stream = table::borrow(&_config.store, stream_id);
-
-        let (delta, _) = delta_of(stream.start_time, stream.stop_time); // total
-
-        let sender_balance = (stream.stop_time - stream.start_time - delta) * stream.rate_per_second;
-
-        sender_balance
-    }
-
-    // recipient balance = rate_per_second * (duration - delta)
-    public fun recipient_balance<CoinType>(coin_id: u64, stream_id: u64): u64 
-        acquires GlobalConfig
-    {
-        assert!(
-            exists<GlobalConfig>(@Stream), error::already_exists(STREAM_NOT_PUBLISHED),
-        );
-        let global = borrow_global<GlobalConfig>(@Stream);
-
-        assert!(
-            vector::length(&global.coin_configs) > coin_id, error::not_found(COIN_CONF_NOT_FOUND),
-        );
-        let _config = vector::borrow(&global.coin_configs, coin_id);
-
-        assert!(
-            table::contains(&_config.store, stream_id), error::not_found(STREAM_NOT_FOUND),
-        );
-        let stream = table::borrow(&_config.store, stream_id);
-
-        let (delta, _) = delta_of(stream.last_withdraw_time, stream.stop_time); // total
-        
-        let recipient_balance = delta * stream.rate_per_second;
-
-        recipient_balance
-
-    }
-
-    public fun stream_info<CoinType>(coin_id: u64, stream_id: u64): StreamInfo
-        acquires GlobalConfig
-    {
-        assert!(
-            exists<GlobalConfig>(@Stream), error::already_exists(STREAM_NOT_PUBLISHED),
-        );
-        let global = borrow_global<GlobalConfig>(@Stream);
-
-        assert!(
-            vector::length(&global.coin_configs) > coin_id, error::not_found(COIN_CONF_NOT_FOUND),
-        );
-        let _config = vector::borrow(&global.coin_configs, coin_id);
-
-        assert!(
-            table::contains(&_config.store, stream_id), error::not_found(STREAM_NOT_FOUND),
-        );
-        let stream = table::borrow(&_config.store, stream_id);
-
-        *stream
-    }
-
-    public fun input_stream(account: address): vector<StreamIndex>
-        acquires GlobalConfig
-    {
-        assert!(
-            exists<GlobalConfig>(@Stream), error::already_exists(STREAM_NOT_PUBLISHED),
-        );
-        let global = borrow_global<GlobalConfig>(@Stream);
-
-        assert!(
-            table::contains(&global.input_stream, account), error::not_found(STREAM_NOT_FOUND),
-        );
-        let input_stream = table::borrow(&global.input_stream, account);
-
-        *input_stream
-    }
-
-    public fun output_stream(account: address): vector<StreamIndex>
-    acquires GlobalConfig
-    {
-        assert!(
-            exists<GlobalConfig>(@Stream), error::already_exists(STREAM_NOT_PUBLISHED),
-        );
-        let global = borrow_global<GlobalConfig>(@Stream);
-
-        assert!(
-            table::contains(&global.output_stream, account), error::not_found(STREAM_NOT_FOUND),
-        );
-        let output_stream = table::borrow(&global.output_stream, account);
-
-        *output_stream
-    }
-
     public fun delta_of(last_withdraw_time: u64, stop_time: u64) : (u64, u64) {
         let current_time = timestamp::now_seconds();
         let delta = stop_time - last_withdraw_time;
@@ -695,16 +557,10 @@ module Stream::streampay {
             return (current_time - last_withdraw_time, current_time)
         };
 
-        (delta, current_time)
+        (delta, stop_time)
     }
 
-    // public views for global config start 
-    public fun fee_recipient(): address acquires GlobalConfig {
-        assert!(
-            exists<GlobalConfig>(@Stream), error::already_exists(STREAM_NOT_PUBLISHED),
-        );
-        borrow_global<GlobalConfig>(@Stream).fee_recipient
-    }
+    // public views for global config start
 
     public fun admin(): address acquires GlobalConfig {
         assert!(
@@ -812,7 +668,7 @@ module Stream::streampay {
         assert!(_stream.stop_time == 10005, 0);
         assert!(_stream.deposit_amount == 60000, 0);
         assert!(_stream.remaining_balance == coin::value(&escrow_coin.coin), 0);
-        assert!(_stream.rate_per_second == 60000/5, 0);
+        assert!(_stream.rate_per_second == 60000 * 1000/5, 0);
         assert!(_stream.last_withdraw_time == 10000, 0);
 
         //wthidraw
@@ -879,7 +735,7 @@ module Stream::streampay {
         let global = borrow_global_mut<GlobalConfig>(@Stream);
         let _config = vector::borrow(&global.coin_configs, 0);
         let _stream = table::borrow(&_config.store, 1);
-        assert!(_stream.last_withdraw_time == 10006, 0);
+        assert!(_stream.last_withdraw_time == _stream.stop_time, 0);
         assert!(coin::balance<FakeMoney>(recipient) == beforeWithdraw + 60000/5 * 5, 0);
     }
 
