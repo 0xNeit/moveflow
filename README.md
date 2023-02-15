@@ -4,7 +4,7 @@ A crypto asset streaming protocol
 >
 > Intro Video: ??
 >
-![send](assets/Moveflow-Send.png)
+![flow](assets/Moveflow.png)
 
 # Getting Started
 Configure & Compile & Integration Test & Publish
