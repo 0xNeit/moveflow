@@ -10,7 +10,7 @@ A crypto asset streaming protocol
 Configure & Compile & Integration Test & Publish
 
 ## Roles & Authorizations
-- `owner`: `publish`, `initialize`(including `set_admin` & `set_fee_point`)
+- `owner`: `publish`, `initialize`(including set `admin` & `fee_recipient`), `set_fee_point`
 - `admin`: `register_coin`
 - `user`: `create`, `withdraw`, `close`
 
@@ -208,3 +208,19 @@ aptos move run \
     --assume-yes
 
 ```
+
+# Moveflow Introduction
+## In Brief
+MOVEFLOW is an cryto asset streaming protocol built on the public chain APTOS.
+
+MOVEFLOW is able to transfer assets on chain according to predefined rules . With one transaction, funds will flow from your wallet to the recipient real-time(by second), for each party to conduct timely financial transactions without intermediaries.
+
+## Background
+In 2016, Andreas M. Antonopoulos delivered this exceptional keynote on “Streaming Money” at the Special Edition of the [Bitcoin Wednesday Conference at the Eye Film Museum in Amsterdam on 19 October, 2016](https://www.youtube.com/watch?v=l235ydAx5oQ).
+
+In 2018, Paul Razvan Berg created the technical standard of streaming payment: [EIP-1620: Money Streaming](https://eips.ethereum.org/EIPS/eip-1620).
+
+As of the end of 2022, most prominent public blockchains have their web3 asset streaming protocol like: Sablier, Superfluid, Roketo, Zebec, Calamus, LlamaPay, etc. And we believe APTOS needs its own web3 asset streaming protocol， whose extremely high TPS and extremely low transaction bring excellent user expreience when conducting transactions.
+
+## Snippet Examples
+
