@@ -20,8 +20,10 @@ In 2018, Paul Razvan Berg created the technical standard of streaming payment: [
 As of the end of 2022, most prominent public blockchains have their web3 asset streaming protocol like: Sablier, Superfluid, Roketo, Zebec, Calamus, LlamaPay, etc. And we believe APTOS needs its own web3 asset streaming protocol, whose extremely high TPS and low transaction bring excellent user expreience when conducting transactions.
 
 ## Features
-* Asset transfer by second
+* Asset stream(transfer) by second
+![transfer](assets/moveflow-transfer.png)
 * Subscription payment (in progress)
+![subscript](assets/Moveflow-Subscribe.png)
 
 # Getting Started
 Configure & Compile & Integration Test & Publish
