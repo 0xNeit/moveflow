@@ -250,3 +250,11 @@ aptos move run \
 --type-args <coin_type>
 
 ```
+
+# Team
+* [1730.eth](https://github.com/bengbengle): Years of technical finance and blockchain software development experience, full-stack development, keen on encryption art.
+* [Albin](https://github.com/albinlau): Software development engineer for over 10 years, 3 years
+  smart contract development experience, presided over the development of multiple web3 applications.
+* [Burt](https://github.com/livelybug): Full-stack blockchain developer, working overseas for 8 years , 5 years of blockchain development experience, presided over the development of multiple cross-chains
+  project.
+* Lynn: Years of web3 brand marketing and product operation experience
