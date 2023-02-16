@@ -274,7 +274,7 @@ module Stream::streampay {
 
         _config.next_id = _stream_id + 1;
 
-        // 6. add input stream to sender
+        // 6. add output stream to sender, input stream to recipient
 
         add_stream_index(&mut global.output_stream, sender_address, StreamIndex{
             coin_id: _config.coin_id,
