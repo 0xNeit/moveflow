@@ -23,6 +23,7 @@ As of the end of 2022, most prominent public blockchains have their web3 asset s
 * Asset stream(transfer) by second
 
 ![transfer](assets/moveflow-transfer.png)
+
 * Subscription payment (in progress)
 
 ![subscript](assets/Moveflow-Subscribe.png)
