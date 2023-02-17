@@ -12,6 +12,10 @@ MOVEFLOW is an crypto asset streaming protocol built on the public chain APTOS.
 
 MOVEFLOW is able to transfer assets on chain according to predefined rules. With one transaction, funds will flow from your wallet to the recipient real-time(by second), to conduct timely financial transactions without intermediaries.
 
+Please refer to the chart below for Moveflow's basis structure:
+
+![basis](assets/Moveflow-basis.png)
+
 ## Background
 In 2016, Andreas M. Antonopoulos delivered this exceptional keynote on “Streaming Money” at the Special Edition of the [Bitcoin Wednesday Conference at the Eye Film Museum in Amsterdam on 19 October, 2016](https://www.youtube.com/watch?v=l235ydAx5oQ).
 
@@ -257,4 +261,4 @@ aptos move run \
   smart contract development experience, presided over the development of multiple web3 applications.
 * [Burt](https://github.com/livelybug): Full-stack blockchain developer, working overseas for 8 years , 5 years of blockchain development experience, presided over the development of multiple cross-chains
   project.
-* Lynn: Years of web3 brand marketing and product operation experience
+* Lynn: Years of web3 brand marketing and product operation experience.
