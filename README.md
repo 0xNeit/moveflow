@@ -1,55 +1,82 @@
-# Move stream
+# MoveFlow
+A crypto asset streaming protocol
+> Testnet Demo: https://www.moveflow.xyz/
+>
+> Intro Video: https://www.youtube.com/watch?v=go_Nu5AxFgw
+> 
+>Deck Link: https://pitch.com/public/619e0d9b-2d58-4a8b-8cc8-e16764bbc4f5/bec72e82-24e5-4de2-94bb-4efa596d51e1
+>
+![flow](assets/Moveflow.png)
 
-### Supported dependencies
-- aptos-cli: `Aptos CLI Release v1.0.0`
-- AptosFramework: `main @ 01108a2345b87d539d54a67b32db55193f9ace40`
-- AptosStdlib: `main @ 01108a2345b87d539d54a67b32db55193f9ace40`
+# Introduction
+## In Brief
+MOVEFLOW is an crypto asset streaming protocol built on the public chain APTOS.
 
-### Roles and Calls
-- `owner`: `publish`, `initialize`, `set_admin`, `set_fee_point`
+MOVEFLOW is able to transfer assets on chain according to predefined rules. With one transaction, funds will flow from your wallet to the recipient real-time(by second), to conduct timely financial transactions without intermediaries.
+
+Please refer to the chart below for Moveflow's basis structure:
+
+![basis](assets/Moveflow-basis.png)
+
+## Background
+In 2016, Andreas M. Antonopoulos delivered this exceptional keynote on “Streaming Money” at the Special Edition of the [Bitcoin Wednesday Conference at the Eye Film Museum in Amsterdam on 19 October, 2016](https://www.youtube.com/watch?v=l235ydAx5oQ).
+
+In 2018, Paul Razvan Berg created the technical standard of streaming payment: [EIP-1620: Money Streaming](https://eips.ethereum.org/EIPS/eip-1620).
+
+As of the end of 2022, most prominent public blockchains have their web3 asset streaming protocol like: Sablier, Superfluid, Roketo, Zebec, Calamus, LlamaPay, etc. And we believe APTOS needs its own web3 asset streaming protocol, whose extremely high TPS and low transaction bring excellent user expreience when conducting transactions.
+
+## Features
+* Asset stream(transfer) by second
+
+![transfer](assets/moveflow-transfer.png)
+
+* Subscription payment (in progress)
+
+![subscript](assets/Moveflow-Subscribe.png)
+
+# Getting Started
+Configure & Compile & Integration Test & Publish
+
+## Roles & Authorizations
+- `owner`: `publish`, `initialize`(including set `admin` & `fee_recipient`), `set_fee_point`
 - `admin`: `register_coin`
 - `user`: `create`, `withdraw`, `close`
 
-# movepay tree
-
-├── build
-├── LICENSE
-├── Move.toml
-├── README.md
-└── sources
-```
-
-### Compile & Test & Publish
-run `aptos init` in `movepay` to config aptos network environment
+## Configure for Aptos Env
+run `aptos init` to config aptos network environment
 
 example result
 ```bash
- cd movepay
- cat .aptos/config.yaml 
+git clone https://github.com/Move-Stream/movecontract.git
+cd movecontract
+aptos init
+# Configuring for aptos testnet ...
+cat .aptos/config.yaml 
 ---
 profiles:
   default:
     private_key: <your privkey>
     public_key: <your pubkey>
     account: <your address>
-    rest_url: "https://fullnode.devnet.aptoslabs.com/v1"
-    faucet_url: "https://faucet.devnet.aptoslabs.com/"
-
+    rest_url: "https://fullnode.testnet.aptoslabs.com"
 ```
 
+## Compile & Unit Test
 ```bash
 aptos move compile --named-addresses Stream=<your address>
-
-aptos move test
-
-aptos move publish --named-addresses Stream=<your address>
+aptos move test --named-addresses Stream=<your address>,Admin=<admin address>
+```
+example
+```bash
+aptos move compile --named-addresses Stream=0x0e1cad35db73ecab64d22230b2e9a59ba0cee1104bbf71fcd566f047ec40da4b
+aptos move test --named-addresses Stream=0x0e1cad35db73ecab64d22230b2e9a59ba0cee1104bbf71fcd566f047ec40da4b,Admin=0x0e1cad35db73ecab64d22230b2e9a59ba0cee1104bbf71fcd566f047ec40da4c
 ```
 
-### test cmds
-test coins
+## Integration Test
+Test coins
 ```move
 module mycoin::Coins {
-    /// Coin define
+    /// Coin definition
     ////////////////////////
     struct TestCoin {}
 
@@ -62,148 +89,178 @@ module mycoin::Coins {
 }
 ```
 
+Testing cmds(mock test coin)
 ```bash
-# publish mycoin
+# publish mycoin module for coins issuing
 aptos move publish \
-    --named-addresses mycoin=0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368
+    --named-addresses mycoin=<publish_address>
 
 # issue coins
+# initialize coins
 aptos move run \
     --function-id 0x1::managed_coin::initialize \
     --args string:"Test" string:"Test" u8:8 bool:true \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::TestCoin \
+    --type-args <publish_address>::Coins::TestCoin \
     --assume-yes
 
 aptos move run \
     --function-id 0x1::managed_coin::initialize \
     --args string:"XBTC" string:"XBTC" u8:8 bool:true \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XBTC \
+    --type-args <publish_address>::Coins::XBTC \
     --assume-yes
 
 aptos move run \
     --function-id 0x1::managed_coin::initialize \
     --args string:"XETH" string:"XETH" u8:8 bool:true \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XETH \
+    --type-args <publish_address>::Coins::XETH \
     --assume-yes
 
 aptos move run \
     --function-id 0x1::managed_coin::initialize \
     --args string:"XDOT" string:"XDOT" u8:8 bool:true \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XDOT \
+    --type-args <publish_address>::Coins::XDOT \
     --assume-yes
 
-# register account
+# stores balance of coins on user's account, withdraw and deposit event handlers 
 aptos move run \
     --function-id 0x1::managed_coin::register \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::TestCoin \
-    --assume-yes
-
-aptos move run \
-    --function-id 0x1::managed_coin::register \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XBTC \
+    --type-args <publish_address>::Coins::TestCoin \
     --assume-yes
 
 aptos move run \
     --function-id 0x1::managed_coin::register \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XETH \
+    --type-args <publish_address>::Coins::XBTC \
     --assume-yes
 
 aptos move run \
     --function-id 0x1::managed_coin::register \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XDOT \
+    --type-args <publish_address>::Coins::XETH \
+    --assume-yes
+
+aptos move run \
+    --function-id 0x1::managed_coin::register \
+    --type-args <publish_address>::Coins::XDOT \
     --assume-yes
 
 # mint coins
 aptos move run \
     --function-id 0x1::managed_coin::mint \
-    --args address:0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368 u64:10000000000 \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::TestCoin \
+    --args address:<reciver_address> u64:10000000000 \
+    --type-args <publish_address>::Coins::TestCoin \
     --assume-yes
 
 aptos move run \
     --function-id 0x1::managed_coin::mint \
-    --args address:0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368 u64:10000000000 \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XBTC \
+    --args address:<reciver_address> u64:10000000000 \
+    --type-args <publish_address>::Coins::XBTC \
     --assume-yes
 
 aptos move run \
     --function-id 0x1::managed_coin::mint \
-    --args address:0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368 u64:10000000000 \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XETH \
+    --args address:<reciver_address> u64:10000000000 \
+    --type-args <publish_address>::Coins::XETH \
     --assume-yes
 
 aptos move run \
     --function-id 0x1::managed_coin::mint \
-    --args address:0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368 u64:10000000000 \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XDOT \
+    --args address:<reciver_address> u64:10000000000 \
+    --type-args <publish_address>::Coins::XDOT \
     --assume-yes
 
 ==================================================================================================
 
-# publish movepay
-aptos move publish --named-addresses Stream=0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368
+# publish moveflow
+aptos move publish --named-addresses Stream=<publish_address>
 
-# owner movepay::initialize
+# set admin and fee_recipient
 aptos move run \
-    --function-id 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::movepay::initialize \
-    --args address:0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368 \
-           address:0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368
+    --function-id <publish_address>::movepay::initialize \
+    --args address:<admin_address> \
+           address:<fee_recipient>
 
-# admin movepay::register_coin
+# register coins on moveflow
 aptos move run \
-    --function-id 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::movepay::register_coin \
+    --function-id <publish_address>::movepay::register_coin \
     --type-args 0x1::aptos_coin::AptosCoin \
     --assume-yes
 
 aptos move run \
-    --function-id 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::movepay::register_coin \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XBTC \
+    --function-id <publish_address>::movepay::register_coin \
+    --type-args <publish_address>::Coins::XBTC \
     --assume-yes
 
 aptos move run \
-    --function-id 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::movepay::register_coin \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XETH \
+    --function-id <publish_address>::movepay::register_coin \
+    --type-args <publish_address>::Coins::XETH \
     --assume-yes
 
 aptos move run \
-    --function-id 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::movepay::register_coin \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XDOT \
+    --function-id <publish_address>::movepay::register_coin \
+    --type-args <publish_address>::Coins::XDOT \
     --assume-yes
 
 aptos move run \
-    --function-id 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::movepay::register_coin \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::TestCoin \
+    --function-id <publish_address>::movepay::register_coin \
+    --type-args <publish_address>::Coins::TestCoin \
     --assume-yes
 
-# admin movepay::create
+# create a payment stream
 aptos move run \
-    --function-id 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::movepay::create \
+    --function-id <publish_address>::movepay::create \
     --args u64:0 u64:1000 u64:10000 \
     --type-args 0x1::aptos_coin::AptosCoin \
     --assume-yes
 
 aptos move run \
-    --function-id 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::movepay::create \
+    --function-id <publish_address>::movepay::create \
     --args u64:1 u64:1000 u64:10000 \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XBTC \
+    --type-args <publish_address>::Coins::XBTC \
     --assume-yes
 
 aptos move run \
-    --function-id 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::movepay::create \
+    --function-id <publish_address>::movepay::create \
     --args u64:2 u64:1000 u64:10000 \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XETH \
+    --type-args <publish_address>::Coins::XETH \
     --assume-yes
 
 aptos move run \
-    --function-id 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::movepay::create \
+    --function-id <publish_address>::movepay::create \
     --args u64:3 u64:1000 u64:10000 \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::XDOT \
+    --type-args <publish_address>::Coins::XDOT \
     --assume-yes
 
 aptos move run \
-    --function-id 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::movepay::create \
+    --function-id <publish_address>::movepay::create \
     --args u64:4 u64:1000 u64:10000 \
-    --type-args 0x7f2868a381a1aa961cb4ce4dc3e0f9146b787b342fd0a45c1f1d9240df0e2368::Coins::TestCoin \
+    --type-args <publish_address>::Coins::TestCoin \
     --assume-yes
+
+# extend a payment stream
+aptos move run \
+--function-id <publish_address>::movepay::extend \
+--args u64:<new_stop_time> u64:<coin_id> u64:<stream_id> \
+--type-args <coin_type>
+
+
+# close a payment stream
+aptos move run \
+--function-id <publish_address>::movepay::close \
+--args u64:<coin_id> u64:<stream_id> \
+--type-args <coin_type>
+
+
+# withdraw a payment stream
+aptos move run \
+--function-id <publish_address>::movepay::withdraw \
+--args u64:<coin_id> u64:<stream_id> \
+--type-args <coin_type>
 
 ```
+
+# Team
+* [1730.eth](https://github.com/bengbengle): Years of technical finance and blockchain software development experience, full-stack development, keen on encryption art.
+* [Albin](https://github.com/albinlau): Software development engineer for over 10 years, 3 years
+  smart contract development experience, presided over the development of multiple web3 applications.
+* [Burt](https://github.com/livelybug): Full-stack blockchain developer, working overseas for 8 years , 5 years of blockchain development experience, presided over the development of multiple cross-chains
+  project.
+* Lynn: Years of web3 brand marketing and product operation experience.
